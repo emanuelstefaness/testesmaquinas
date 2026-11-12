@@ -1,0 +1,46 @@
+TESTE DE COMUNICAÇÃO SERIAL DAS MÁQUINAS
+=========================================
+
+O que precisa
+- Notebook com Windows
+- Conversor USB-serial (CH340) e o adaptador azul DB25 -> DB9
+- Esta pasta copiada pro notebook (não precisa instalar nada)
+
+Jeito mais fácil: painel visual
+- Dê dois cliques em ABRIR-PAINEL.bat (abre o painel.html no Edge).
+- Escolha a máquina, clique em Conectar, escolha a porta do CH340
+  e use "Descobrir configuração". No fim, "Baixar registro".
+- Se der erro ao abrir a porta: tire o conversor do USB, coloque de novo
+  e clique em Conectar.
+
+Como usar o programa de terminal (reserva)
+1. Ligue a máquina.
+2. Encaixe o conversor na máquina e no USB do notebook.
+3. Dê dois cliques em TESTAR.bat.
+4. Escolha a porta COM (o CH340 aparece como "USB-SERIAL CH340").
+5. Escolha a máquina.
+6. Use a opção 1 (Descobrir) e siga o que aparecer na tela.
+7. Quando achar a configuração, use a opção 2 (Escutar) e faça 3 ou 4 medições
+   de verdade, pra gente ver o formato completo.
+8. Opção 0 pra sair. Tudo fica gravado na pasta "logs".
+
+Ligação de cada máquina
+- Balança Mettler (porta COM1, DB9):  conversor direto na balança
+- Contador Pfeuffer (DB9, a de baixo): conversor direto no contador
+- Balança Shimadzu (RS232C, DB25):     conversor + adaptador azul
+
+O que fazer em cada uma durante o teste
+- Mettler:  só deixe algo no prato. O programa pede o peso sozinho.
+- Contador: quando o programa pedir, faça uma contagem completa (Start).
+- Shimadzu: quando o programa pedir, aperte a tecla PRINT.
+
+Como ler o resultado
+- Linha VERDE (90% ou mais legível): configuração certa, dados chegando.
+- Linha AMARELA com símbolos estranhos: chegou algo, mas a velocidade
+  está errada. A opção 1 continua testando as outras.
+- "Nada recebido" em todas: cabo solto, saída serial desligada no menu
+  da máquina, ou falta o null modem (fica pro segundo teste).
+
+Ligar errado não queima nada. No máximo os dados não chegam.
+
+No fim, mande os arquivos da pasta "logs".

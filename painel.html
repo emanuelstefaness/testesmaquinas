@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel serial</title>
+<style>
+:root{--bg:#f3f4f0;--card:#fff;--ink:#1c2420;--muted:#68716b;--line:#e2e5df;--acc:#2e7a4d;--acc-ink:#1d5535;--acc-soft:#e5f1e9;--warn:#9a6200;--warn-soft:#fcf2df;--err:#b3261e;--err-soft:#fbe8e6;--mono:Consolas,ui-monospace,monospace}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header{display:flex;align-items:center;gap:16px;padding:14px 24px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+header h1{font-size:17px;font-weight:600;margin:0;flex:1}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:#eef0ec;color:var(--muted);font-size:13px}
+.pill i{width:8px;height:8px;border-radius:50%;background:#a9b0aa}
+.pill.on{background:var(--acc-soft);color:var(--acc-ink)}.pill.on i{background:var(--acc)}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+button:hover{border-color:#c7ccc5}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+button.pri:hover{background:var(--acc-ink)}
+button:disabled{opacity:.45;cursor:default}
+main{display:grid;grid-template-columns:330px 1fr;gap:20px;padding:20px 24px;max-width:1400px;margin:0 auto}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h2{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+aside{display:flex;flex-direction:column;gap:16px}
+.maqs{display:flex;flex-direction:column;gap:6px}
+.maq{text-align:left;padding:10px 12px;display:block;width:100%}
+.maq b{display:block;font-weight:600}
+.maq span{font-size:12px;color:var(--muted)}
+.maq.sel{border-color:var(--acc);background:var(--acc-soft)}
+.maq.sel b{color:var(--acc-ink)}
+.dica{font-size:13px;color:var(--muted);line-height:1.5;margin:12px 0 0;padding:10px 12px;background:#f7f8f5;border-radius:8px}
+.row{display:flex;gap:8px;align-items:center}
+.row+.row{margin-top:10px}
+label.f{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+select,input[type=text]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:100%}
+.grow{flex:1}
+.cmds{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.cmds button{padding:6px 10px;font-size:13px}
+.cmds button code{font-family:var(--mono);color:var(--acc-ink);margin-right:4px}
+section.dir{display:flex;flex-direction:column;gap:16px;min-width:0}
+.valor{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.valor .num{font-size:52px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.valor .num small{font-size:22px;color:var(--muted);margin-left:6px;font-weight:500}
+.valor .raw{font-family:var(--mono);font-size:13px;color:var(--muted);word-break:break-all}
+.vazio{color:var(--muted)}
+.banner{border-radius:12px;padding:16px;background:var(--warn-soft);border:1px solid #f0dcb4}
+.banner.ok{background:var(--acc-soft);border-color:#c5e0ce}
+.banner.err{background:var(--err-soft);border-color:#f2c9c4}
+.banner .tit{font-weight:600;font-size:15px}
+.banner .sub{margin-top:4px}
+.banner .acoes{margin-top:12px;display:flex;gap:8px}
+.bar{height:4px;border-radius:2px;background:rgba(0,0,0,.08);margin-top:12px;overflow:hidden}
+.bar div{height:100%;background:var(--warn);width:0}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+td,th{padding:6px 8px;text-align:left;border-top:1px solid rgba(0,0,0,.06)}
+th{font-weight:600;color:var(--muted)}
+td.amostra{font-family:var(--mono);word-break:break-all}
+.tools{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.tools h2{margin:0;flex:1}
+.tools label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.feed{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow:auto}
+.msg{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:76px 1fr auto;gap:12px;align-items:start}
+.msg .h{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px}
+.msg .t{font-family:var(--mono);font-size:14px;white-space:pre-wrap;word-break:break-all}
+.msg .x{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;display:none;word-break:break-all}
+.feed.hex .x{display:block}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.tag.ok{background:var(--acc-soft);color:var(--acc-ink)}
+.tag.ruim{background:var(--warn-soft);color:var(--warn)}
+.msg.sis{grid-template-columns:76px 1fr;background:#f7f8f5;border-style:dashed}
+.msg.sis .t{font-family:inherit;color:var(--muted);font-size:13px}
+.msg.sis.err .t{color:var(--err)}
+.ctl{font-size:10px;padding:0 4px;margin:0 1px;border-radius:3px;background:#e7eae4;color:var(--muted);vertical-align:1px}
+.aviso{max-width:640px;margin:60px auto;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+<header>
+  <h1>Painel de teste das máquinas</h1>
+  <span class="pill" id="status"><i></i><span>Desconectado</span></span>
+  <button class="pri" id="btnConectar">Conectar</button>
+</header>
+
+<div id="semSuporte" class="aviso card" hidden>
+  <b>Este navegador não acessa portas seriais.</b><br>
+  Abra este arquivo no <b>Microsoft Edge</b> ou no <b>Google Chrome</b> (use o ABRIR-PAINEL.bat).
+</div>
+
+<main id="app">
+  <aside>
+    <div class="card">
+      <h2>Máquina</h2>
+      <div class="maqs" id="maqs"></div>
+      <p class="dica" id="dica"></p>
+    </div>
+
+    <div class="card">
+      <h2>Configuração da porta</h2>
+      <div class="row">
+        <div class="grow"><label class="f" for="baud">Velocidade</label>
+          <select id="baud"></select></div>
+        <div class="grow"><label class="f" for="fmt">Formato</label>
+          <select id="fmt"><option>8N1</option><option>7E1</option></select></div>
+      </div>
+      <div class="row"><button class="grow" id="btnDescobrir" disabled>Descobrir configuração</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Enviar comando</h2>
+      <div class="cmds" id="cmds"></div>
+      <div class="row">
+        <input type="text" id="cmd" placeholder="Ex.: SI" autocomplete="off">
+        <button id="btnEnviar" disabled>Enviar</button>
+      </div>
+    </div>
+  </aside>
+
+  <section class="dir">
+    <div class="card">
+      <h2>Último valor recebido</h2>
+      <div class="valor" id="valor"><span class="vazio">Nada recebido ainda. Conecte e faça a máquina enviar um resultado.</span></div>
+    </div>
+
+    <div id="banner" hidden></div>
+
+    <div class="card">
+      <div class="tools">
+        <h2>O que chegou</h2>
+        <label><input type="checkbox" id="chkHex"> mostrar hex</label>
+        <button id="btnLimpar">Limpar</button>
+        <button id="btnBaixar">Baixar registro</button>
+      </div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const MAQ = {
+  mettler:  { nome: 'Balança Mettler Toledo', lig: 'Conversor direto na COM1', baud: 9600, comando: 'SI', janela: 2,
+              acao: 'Deixe algo no prato', dica: 'Encaixe o conversor direto na porta COM1 da balança. Deixe algo no prato: o painel pede o peso sozinho.',
+              rapidos: [['SI', 'peso agora'], ['S', 'peso estável'], ['I2', 'modelo'], ['I4', 'nº de série']] },
+  contador: { nome: 'Contador Pfeuffer', lig: 'Conversor direto na DB9 de baixo', baud: 9600, janela: 60,
+              acao: 'Faça uma contagem completa (Start)', dica: 'Encaixe o conversor na porta DB9 de baixo. Quando o painel pedir, faça uma contagem completa e espere terminar.' },
+  shimadzu: { nome: 'Balança Shimadzu', lig: 'Conversor + adaptador azul', baud: 1200, janela: 10,
+              acao: 'Aperte PRINT na balança', dica: 'Use o conversor com o adaptador azul na porta RS232C. Quando o painel pedir, aperte a tecla PRINT com algo no prato.' },
+  gac2500:  { nome: 'GAC 2500', lig: 'Precisa gender changer F-F + null modem', baud: 9600, janela: 60,
+              acao: 'Faça uma medição', dica: 'Ainda faltam peças: gender changer fêmea-fêmea e null modem. No menu do GAC: Setup > System > Printer, RS-232, 9600-N-8-1, CSV01, Auto Print ligado.' },
+  gac2100:  { nome: 'GAC 2100', lig: 'Adaptador azul + null modem na COM2', baud: 9600, janela: 60,
+              acao: 'Faça uma medição', dica: 'Use a COM2 (a de baixo) com o adaptador azul. Sem o null modem provavelmente não chega nada. No menu: Com Menu > Automatic Results Output incluindo COM2.' },
+  outra:    { nome: 'Outra máquina', lig: 'Qualquer porta serial', baud: 9600, janela: 20,
+              acao: 'Faça a máquina enviar um resultado', dica: 'Use Descobrir configuração e faça a máquina mandar um resultado em cada tentativa.' }
+};
+const BAUDS = [9600, 1200, 2400, 4800, 19200, 38400, 57600, 115200, 300, 600];
+const FMT = { '8N1': { dataBits: 8, parity: 'none' }, '7E1': { dataBits: 7, parity: 'even' } };
+const CHIPS = { 0x1A86: 'CH340', 0x0403: 'FTDI', 0x067B: 'Prolific', 0x10C4: 'CP210x' };
+
+const $ = s => document.querySelector(s);
+let maq = 'mettler', port = null, reader = null, loop = null;
+let cfg = { baud: 9600, fmt: '8N1' };
+let registro = [], pend = [], tPend = null, coletor = null, pular = false, parar = false, descobrindo = false;
+
+function esc(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function hora(d = new Date()) { return d.toLocaleTimeString('pt-BR'); }
+function texto(b) {
+  let s = '';
+  for (const x of b) s += x === 13 ? '<CR>' : x === 10 ? '<LF>' : (x >= 32 && x < 127) ? String.fromCharCode(x) : '<' + x.toString(16).toUpperCase().padStart(2, '0') + '>';
+  return s;
+}
+function textoHtml(b) {
+  return esc(texto(b)).replace(/&lt;(CR|LF|[0-9A-F]{2})&gt;/g, '<span class="ctl">$1</span>');
+}
+function hex(b) { return Array.from(b, x => x.toString(16).toUpperCase().padStart(2, '0')).join(' '); }
+function nota(b) {
+  if (!b.length) return 0;
+  let ok = 0;
+  for (const x of b) if ((x >= 32 && x < 127) || x === 9 || x === 10 || x === 13) ok++;
+  return Math.round(100 * ok / b.length);
+}
+
+function montarMaquinas() {
+  $('#maqs').innerHTML = Object.entries(MAQ).map(([k, m]) =>
+    `<button class="maq${k === maq ? ' sel' : ''}" data-k="${k}"><b>${m.nome}</b><span>${m.lig}</span></button>`).join('');
+  const m = MAQ[maq];
+  $('#dica').textContent = m.dica;
+  $('#cmds').innerHTML = (m.rapidos || []).map(([c, d]) => `<button data-c="${c}"><code>${c}</code>${d}</button>`).join('')
+    || '<span class="vazio" style="font-size:13px">Esta máquina não precisa de comando, ela envia sozinha.</span>';
+}
+$('#maqs').addEventListener('click', async e => {
+  const b = e.target.closest('.maq'); if (!b || descobrindo) return;
+  maq = b.dataset.k; montarMaquinas();
+  cfg.baud = MAQ[maq].baud; cfg.fmt = '8N1'; mostrarCfg();
+  sistema(`Máquina: ${MAQ[maq].nome}`);
+  if (port) await reabrir();
+});
+$('#cmds').addEventListener('click', e => { const b = e.target.closest('button[data-c]'); if (b) enviar(b.dataset.c); });
+
+function mostrarCfg() {
+  $('#baud').innerHTML = BAUDS.map(b => `<option${b === cfg.baud ? ' selected' : ''}>${b}</option>`).join('');
+  $('#fmt').value = cfg.fmt;
+}
+$('#baud').addEventListener('change', async e => { cfg.baud = +e.target.value; if (port) await reabrir(); });
+$('#fmt').addEventListener('change', async e => { cfg.fmt = e.target.value; if (port) await reabrir(); });
+
+function status(on, txt) {
+  $('#status').className = 'pill' + (on ? ' on' : '');
+  $('#status span').textContent = txt;
+  $('#btnConectar').textContent = on ? 'Desconectar' : 'Conectar';
+  $('#btnConectar').className = on ? '' : 'pri';
+  $('#btnDescobrir').disabled = !on || descobrindo;
+  $('#btnEnviar').disabled = !on;
+}
+function nomeChip() {
+  const i = port && port.getInfo ? port.getInfo() : {};
+  return CHIPS[i.usbVendorId] || (i.usbVendorId ? 'USB ' + i.usbVendorId.toString(16) : 'porta serial');
+}
+
+async function abrir() {
+  await port.open({ baudRate: cfg.baud, ...FMT[cfg.fmt], stopBits: 1, flowControl: 'none', bufferSize: 4096 });
+  try { await port.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (e) {}
+  loop = lerSempre();
+  status(true, `${nomeChip()} · ${cfg.baud} ${cfg.fmt}`);
+}
+async function fechar() {
+  if (!port) return;
+  if (reader) { try { await reader.cancel(); } catch (e) {} }
+  if (loop) { await loop; loop = null; }
+  try { await port.close(); } catch (e) {}
+}
+async function reabrir() {
+  try { await fechar(); await abrir(); sistema(`Porta reaberta em ${cfg.baud} ${cfg.fmt}`); }
+  catch (e) { sistema('Erro ao abrir a porta: ' + e.message, true); }
+}
+async function lerSempre() {
+  while (port && port.readable) {
+    reader = port.readable.getReader();
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) return;
+        if (value && value.length) receber(value);
+      }
+    } catch (e) {
+      sistema('Leitura interrompida: ' + e.message, true);
+    } finally { reader.releaseLock(); reader = null; }
+  }
+}
+
+function receber(v) {
+  if (coletor) { for (const x of v) coletor.push(x); coletor.ultimo = Date.now(); return; }
+  for (const x of v) pend.push(x);
+  clearTimeout(tPend);
+  if (v.includes(10)) descarregar(); else tPend = setTimeout(descarregar, 400);
+}
+function descarregar() {
+  if (!pend.length) return;
+  const b = Uint8Array.from(pend); pend = [];
+  mensagem(b);
+}
+
+function mensagem(b) {
+  const n = nota(b), d = new Date();
+  registro.push({ d, tipo: 'RX', maq: MAQ[maq].nome, cfg: `${cfg.baud} ${cfg.fmt}`, txt: texto(b), hex: hex(b), nota: n });
+  const el = document.createElement('div');
+  el.className = 'msg';
+  el.innerHTML = `<div class="h">${hora(d)}</div><div><div class="t">${textoHtml(b)}</div><div class="x">${hex(b)}</div></div>
+    <span class="tag ${n >= 90 ? 'ok' : 'ruim'}">${n >= 90 ? 'legível' : 'ilegível'} · ${b.length} B</span>`;
+  $('#feed').prepend(el);
+  if (n >= 90) mostrarValor(b);
+}
+function sistema(t, erro) {
+  const d = new Date();
+  registro.push({ d, tipo: erro ? 'ERRO' : 'INFO', maq: MAQ[maq].nome, cfg: `${cfg.baud} ${cfg.fmt}`, txt: t });
+  const el = document.createElement('div');
+  el.className = 'msg sis' + (erro ? ' err' : '');
+  el.innerHTML = `<div class="h">${hora(d)}</div><div class="t">${esc(t)}</div>`;
+  $('#feed').prepend(el);
+}
+function mostrarValor(b) {
+  const linha = texto(b).replace(/<CR>|<LF>/g, ' ').trim();
+  const m = linha.match(/([-+]?\d+(?:[.,]\d+)?)\s*(kg|mg|g|%|ct|pcs)?/i);
+  const num = m ? `<div class="num">${esc(m[1])}${m[2] ? `<small>${esc(m[2])}</small>` : ''}</div>` : `<div class="num" style="font-size:28px">${esc(linha)}</div>`;
+  $('#valor').innerHTML = `${num}<div class="raw">${textoHtml(b)}<br>${hora()} · ${MAQ[maq].nome} · ${cfg.baud} ${cfg.fmt}</div>`;
+}
+
+async function enviar(c) {
+  c = (c || '').trim(); if (!c || !port || !port.writable) return;
+  const w = port.writable.getWriter();
+  try { await w.write(new TextEncoder().encode(c + '\r\n')); } finally { w.releaseLock(); }
+  if (!descobrindo) sistema(`Enviado: ${c}`);
+}
+$('#btnEnviar').addEventListener('click', () => { enviar($('#cmd').value); $('#cmd').value = ''; });
+$('#cmd').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnEnviar').click(); });
+
+function banner(cls, tit, sub, extra = '') {
+  const b = $('#banner'); b.hidden = false; b.className = 'banner ' + cls;
+  b.innerHTML = `<div class="tit">${tit}</div>${sub ? `<div class="sub">${sub}</div>` : ''}${extra}`;
+}
+function esperarColeta(seg) {
+  return new Promise(res => {
+    const ini = Date.now();
+    const iv = setInterval(() => {
+      const agora = Date.now(), frac = Math.min(1, (agora - ini) / (seg * 1000));
+      const bar = $('#banner .bar div'); if (bar) bar.style.width = (frac * 100) + '%';
+      if (pular || parar || frac >= 1 || (coletor.ultimo && agora - coletor.ultimo > 1000)) { clearInterval(iv); pular = false; res(); }
+    }, 100);
+  });
+}
+async function descobrir() {
+  const m = MAQ[maq];
+  descobrindo = true; parar = false; status(true, 'descobrindo…');
+  const res = [], ordem = [m.baud, ...BAUDS.filter(b => b !== m.baud)];
+  sistema('Descobrindo configuração…');
+  fora: for (const baud of ordem) for (const fmt of ['8N1', '7E1']) {
+    if (parar) break fora;
+    cfg = { baud, fmt }; mostrarCfg();
+    try { await fechar(); await abrir(); } catch (e) { sistema('Erro ao abrir a porta: ' + e.message, true); break fora; }
+    coletor = []; coletor.ultimo = 0;
+    const acao = m.comando ? `Pedindo o valor à máquina (comando ${m.comando})…` : `<b>Agora: ${m.acao}.</b>`;
+    banner('', `Testando ${baud} ${fmt} (${res.length + 1} de ${ordem.length * 2})`, acao,
+      `<div class="bar"><div></div></div><div class="acoes"><button id="bPular">Pular esta</button><button id="bParar">Parar</button></div>${tabela(res)}`);
+    $('#bPular').onclick = () => { pular = true; };
+    $('#bParar').onclick = () => { parar = true; };
+    if (m.comando) await enviar(m.comando);
+    await esperarColeta(m.janela);
+    const b = Uint8Array.from(coletor); coletor = null;
+    res.push({ baud, fmt, b, n: nota(b) });
+    registro.push({ d: new Date(), tipo: 'TESTE', maq: m.nome, cfg: `${baud} ${fmt}`, txt: `${b.length} bytes, ${nota(b)}% legível: ${texto(b)}`, hex: hex(b) });
+    if (m.comando && nota(b) >= 95 && b.length >= 3) break fora;
+  }
+  coletor = null; descobrindo = false;
+  const bons = res.filter(r => r.b.length).sort((a, b) => b.n - a.n || b.b.length - a.b.length);
+  const melhor = bons[0];
+  if (melhor && melhor.n >= 90) {
+    cfg = { baud: melhor.baud, fmt: melhor.fmt }; mostrarCfg();
+    banner('ok', `Achou: ${melhor.baud} ${melhor.fmt}`, `A porta ficou nessa configuração. Agora é só fazer medições de verdade e ver aqui embaixo.`, tabela(res));
+    sistema(`Configuração encontrada: ${melhor.baud} ${melhor.fmt}`);
+    mensagem(melhor.b);
+  } else if (melhor) {
+    cfg = { baud: melhor.baud, fmt: melhor.fmt }; mostrarCfg();
+    banner('', 'Chegou algo, mas nada ficou legível', 'Pode ser velocidade fora da lista ou configuração diferente no menu da máquina. Baixe o registro e me mande.', tabela(res));
+    sistema('Nenhuma configuração ficou legível', true);
+  } else {
+    banner('err', 'Nenhuma configuração recebeu dados', 'Confira o encaixe do cabo, se a máquina está ligada e se a saída serial está ativa no menu dela. Se continuar sem nada, provavelmente falta o null modem.', tabela(res));
+    sistema('Nenhuma configuração recebeu dados', true);
+  }
+  try { await fechar(); await abrir(); } catch (e) { sistema('Erro ao abrir a porta: ' + e.message, true); }
+}
+function tabela(res) {
+  if (!res.length) return '';
+  return `<table><tr><th>Configuração</th><th>Recebido</th><th>Amostra</th></tr>${res.map(r =>
+    `<tr><td>${r.baud} ${r.fmt}</td><td>${r.b.length ? `${r.b.length} B · ${r.n}%` : 'nada'}</td><td class="amostra">${r.b.length ? textoHtml(r.b.slice(0, 50)) : ''}</td></tr>`).join('')}</table>`;
+}
+$('#btnDescobrir').addEventListener('click', () => { if (port && !descobrindo) descobrir(); });
+
+$('#btnConectar').addEventListener('click', async () => {
+  if (port) {
+    parar = true; await fechar(); port = null; status(false, 'Desconectado'); sistema('Desconectado'); return;
+  }
+  try {
+    port = await navigator.serial.requestPort();
+    await abrir();
+    sistema(`Conectado (${nomeChip()}) em ${cfg.baud} ${cfg.fmt}`);
+  } catch (e) {
+    if (port) { sistema('Erro ao abrir a porta: ' + e.message + '. Feche outros programas que usam a porta.', true); }
+    port = null; status(false, 'Desconectado');
+  }
+});
+
+$('#chkHex').addEventListener('change', e => $('#feed').classList.toggle('hex', e.target.checked));
+$('#btnLimpar').addEventListener('click', () => { $('#feed').innerHTML = ''; });
+$('#btnBaixar').addEventListener('click', () => {
+  const linhas = registro.map(r => `${r.d.toLocaleString('pt-BR')}\t${r.tipo}\t${r.maq}\t${r.cfg}\t${r.txt}${r.hex ? '\tHEX ' + r.hex : ''}`);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([linhas.join('\r\n')], { type: 'text/plain;charset=utf-8' }));
+  const d = new Date();
+  a.download = `registro_${maq}_${d.toISOString().slice(0, 16).replace(/[-:T]/g, '')}.txt`;
+  a.click();
+});
+window.addEventListener('beforeunload', e => { if (registro.some(r => r.tipo === 'RX' || r.tipo === 'TESTE')) { e.preventDefault(); e.returnValue = ''; } });
+
+if (!('serial' in navigator)) {
+  $('#app').hidden = true; $('#semSuporte').hidden = false; $('#btnConectar').disabled = true;
+} else {
+  navigator.serial.addEventListener('disconnect', e => {
+    if (e.target === port) { port = null; status(false, 'Desconectado'); sistema('O conversor foi desconectado', true); }
+  });
+}
+montarMaquinas(); mostrarCfg(); status(false, 'Desconectado');
+</script>
+</body>
+</html>
